@@ -45,6 +45,13 @@ class TestTicTacToe(unittest.TestCase):
         move = tic_tac_toe.get_bot_move(board, "X", "expert", "O")
         self.assertIn(move, range(9))
 
+    def test_celebration_runs(self):
+        # basic smoke test to ensure celebration doesn't crash
+        try:
+            tic_tac_toe.celebration("Player X")
+        except Exception as e:
+            self.fail(f"celebration raised an exception: {e}")
+
 
 if __name__ == "__main__":
     unittest.main()

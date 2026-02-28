@@ -35,6 +35,8 @@ You can play either human vs human or human vs a computer bot. When playing agai
 
 You can also choose whether you or the bot goes first.
 
+When a player wins the game, a simple ASCII firework animation plays to celebrate the victory.
+
 ## License
 
 This project is licensed under the MIT License.

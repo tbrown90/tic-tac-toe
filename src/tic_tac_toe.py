@@ -2,6 +2,7 @@
 
 import sys
 import random
+import time
 
 BOARD_TEMPLATE = [str(i) for i in range(1, 10)]
 
@@ -140,6 +141,29 @@ def get_bot_move(board, player, level, human_player):
     return random.choice(avail)
 
 
+def celebration(winner):
+    firework = [
+        "        .",
+        "       ...",
+        "      .....",
+        "     .......",
+        "    .........",
+        "      .'.",
+        "   .''.'.''",
+        "  '.''.'.''.'",
+        "   '._.' '._.'",
+    ]
+    print(f"{winner} wins!")
+    for _ in range(3):
+        for frame in firework:
+            print(frame)
+            time.sleep(0.1)
+        # clear lines
+        for _ in firework:
+            sys.stdout.write("\033[F\033[K")
+    print(f"{winner} wins!\n")
+
+
 def main():
     mode = select_mode()
     board = [""] * 9
@@ -163,7 +187,7 @@ def main():
         if check_win(board, current):
             print_board(board)
             winner = "Bot" if mode == "2" and current == bot_player else f"Player {current}"
-            print(f"{winner} wins!")
+            celebration(winner)
             break
         if is_draw(board):
             print_board(board)
