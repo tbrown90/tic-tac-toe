@@ -35,7 +35,23 @@ You can play either human vs human or human vs a computer bot. When playing agai
 
 You can also choose whether you or the bot goes first.
 
-When a player wins the game, a simple ASCII firework animation plays to celebrate the victory.
+When a player wins the game, a simple ASCII firework animation plays to celebrate the victory in terminal mode. The graphical interface uses its own visual effects.
+
+### Graphics
+
+The game now launches a window using **pygame**. Moves are made by clicking cells. The board uses bold lines and bright, cartoonish colours. To install the GUI dependencies:
+
+```bash
+pip install pygame
+```
+
+If `pygame` is not available the game will fall back to the text-based interface.
+
+To start the game (GUI preferred):
+
+```bash
+python -m src.tic_tac_toe
+```
 
 ## License
 

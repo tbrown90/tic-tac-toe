@@ -52,6 +52,15 @@ class TestTicTacToe(unittest.TestCase):
         except Exception as e:
             self.fail(f"celebration raised an exception: {e}")
 
+    def test_game_state(self):
+        state = tic_tac_toe.GameState()
+        self.assertTrue(state.make_move(0))
+        self.assertFalse(state.make_move(0), "can't move on occupied cell")
+        state.current = "X"
+        self.assertEqual(state.winner(), None)
+        state.board = ["X", "X", "X"] + [""] * 6
+        self.assertEqual(state.winner(), "X")
+
 
 if __name__ == "__main__":
     unittest.main()

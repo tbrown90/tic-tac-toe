@@ -1,13 +1,27 @@
-"""Simple Tic-Tac-Toe game playable from the command line."""
+"""Tic-Tac-Toe game with optional GUI front end.
+
+The module defines core logic functions (win checking, draw detection, bot
+moves) and also provides a simple Pygame-based graphical interface.  The GUI
+uses a cartoonish style with bold lines and bright colors.  When run as a
+script the player is prompted for mode/skill via the terminal before the
+window appears.
+"""
 
 import sys
 import random
 import time
 
+# GUI dependencies are optional; import when used
+try:
+    import pygame
+except ImportError:
+    pygame = None
+
 BOARD_TEMPLATE = [str(i) for i in range(1, 10)]
 
 
 def print_board(board):
+    """Text-based board print used for debugging or early prompts."""
     cells = [board[i] if board[i] in ["X", "O"] else str(i + 1) for i in range(9)]
     print(f"{cells[0]} | {cells[1]} | {cells[2]}")
     print("---------")
@@ -142,6 +156,7 @@ def get_bot_move(board, player, level, human_player):
 
 
 def celebration(winner):
+    """ASCII firework used in terminal mode. GUI mode has its own effect."""
     firework = [
         "        .",
         "       ...",
@@ -194,6 +209,156 @@ def main():
             print("It's a draw!")
             break
         current = "O" if current == "X" else "X"
+
+
+class GameState:
+    """Encapsulates board state and current player."""
+
+    def __init__(self, mode="1", bot_level=None, human_first=True):
+        self.board = [""] * 9
+        self.current = "X"
+        self.mode = mode
+        self.bot_level = bot_level
+        self.human_player = "X" if human_first else "O"
+        self.bot_player = "O" if human_first else "X"
+
+    def make_move(self, index):
+        if self.board[index] == "":
+            self.board[index] = self.current
+            return True
+        return False
+
+    def advance(self):
+        self.current = "O" if self.current == "X" else "X"
+
+    def winner(self):
+        if check_win(self.board, self.current):
+            return self.current
+        return None
+
+
+def run_gui(state: GameState):
+    if pygame is None:
+        raise RuntimeError("Pygame is not installed; cannot run GUI mode.")
+
+    pygame.init()
+    size = 300
+    cell = size // 3
+    screen = pygame.display.set_mode((size, size))
+    pygame.display.set_caption("Tic-Tac-Toe")
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont(None, 24)
+
+    def draw():
+        screen.fill((135, 206, 235))  # light blue background
+        # grid lines
+        for i in range(1, 3):
+            pygame.draw.line(screen, (0, 0, 0), (i * cell, 0), (i * cell, size), 4)
+            pygame.draw.line(screen, (0, 0, 0), (0, i * cell), (size, i * cell), 4)
+        # marks
+        for i, mark in enumerate(state.board):
+            x = (i % 3) * cell + cell // 2
+            y = (i // 3) * cell + cell // 2
+            if mark == "X":
+                pygame.draw.line(screen, (220, 20, 60), (x - 30, y - 30), (x + 30, y + 30), 8)
+                pygame.draw.line(screen, (220, 20, 60), (x + 30, y - 30), (x - 30, y + 30), 8)
+            elif mark == "O":
+                pygame.draw.circle(screen, (34, 139, 34), (x, y), 30, 8)
+        pygame.display.flip()
+
+    running = True
+    while running:
+        draw()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mx, my = event.pos
+                idx = (my // cell) * 3 + (mx // cell)
+                if state.mode == "2" and state.current == state.bot_player:
+                    continue
+                if state.make_move(idx):
+                    if state.winner():
+                        draw()
+                        pygame.time.wait(500)
+                        show_message(screen, font, f"Player {state.current} wins!")
+                        running = False
+                        break
+                    if is_draw(state.board):
+                        draw()
+                        pygame.time.wait(500)
+                        show_message(screen, font, "It's a draw!")
+                        running = False
+                        break
+                    state.advance()
+                    if state.mode == "2" and state.current == state.bot_player:
+                        bm = get_bot_move(state.board, state.current, state.bot_level, state.human_player)
+                        state.make_move(bm)
+                        if state.winner():
+                            draw()
+                            pygame.time.wait(500)
+                            show_message(screen, font, "Bot wins!")
+                            running = False
+                            break
+                        if is_draw(state.board):
+                            draw()
+                            pygame.time.wait(500)
+                            show_message(screen, font, "It's a draw!")
+                            running = False
+                            break
+                        state.advance()
+        clock.tick(30)
+    pygame.quit()
+
+
+def show_message(screen, font, text):
+    overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    overlay.fill((255, 255, 255, 200))
+    screen.blit(overlay, (0, 0))
+    msg = font.render(text, True, (0, 0, 0))
+    rect = msg.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    screen.blit(msg, rect)
+    pygame.display.flip()
+    pygame.time.wait(1500)
+
+
+def main():
+    mode = select_mode()
+    bot_level = None
+    human_first = True
+    if mode == "2":
+        bot_level = select_skill()
+        first = input("Do you want to go first? (y/n): ").lower().startswith("y")
+        human_first = first
+    state = GameState(mode=mode, bot_level=bot_level, human_first=human_first)
+    # launch GUI
+    if pygame:
+        run_gui(state)
+    else:
+        # fallback to CLI
+        cli_loop(state)
+
+
+def cli_loop(state):
+    # preserve earlier CLI logic; this is mostly unchanged
+    while True:
+        print_board(state.board)
+        if state.mode == "2" and state.current == state.bot_player:
+            move = get_bot_move(state.board, state.current, state.bot_level, state.human_player)
+            print(f"Bot ({state.bot_level}) chooses {move + 1}")
+        else:
+            move = get_move(state.board, state.current)
+        state.board[move] = state.current
+        if check_win(state.board, state.current):
+            print_board(state.board)
+            winner = "Bot" if state.mode == "2" and state.current == state.bot_player else f"Player {state.current}"
+            celebration(winner)
+            break
+        if is_draw(state.board):
+            print_board(state.board)
+            print("It's a draw!")
+            break
+        state.current = "O" if state.current == "X" else "X"
 
 
 if __name__ == "__main__":
