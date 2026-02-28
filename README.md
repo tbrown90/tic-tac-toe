@@ -53,6 +53,15 @@ To start the game (GUI preferred):
 python -m src.tic_tac_toe
 ```
 
+When pygame is installed, the initial configuration menu appears inside the
+window. You can now **click** options with the mouse instead of using the
+keyboard.  Items highlight when hovered so it's clear what will be chosen.
+Simply click the desired mode, skill level, and whether you go first; the
+interface stays entirely within the window.
+
+Once the game starts, the cell under the cursor highlights yellow (if it's
+empty and it's your turn), making it obvious where the next piece will land.
+
 ## License
 
 This project is licensed under the MIT License.

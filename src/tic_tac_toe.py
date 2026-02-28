@@ -237,6 +237,91 @@ class GameState:
         return None
 
 
+def show_menu_gui():
+    """Display a simple GUI menu to select mode, skill and who goes first.
+
+    Returns (mode, bot_level, human_first).
+
+    The user navigates by clicking options; this keeps interaction entirely
+    within the window instead of requiring keyboard input.
+    """
+    if pygame is None:
+        raise RuntimeError("Pygame not available")
+    pygame.init()
+    size = 300
+    screen = pygame.display.set_mode((size, size))
+    pygame.display.set_caption("Tic-Tac-Toe Menu")
+    font = pygame.font.SysFont(None, 24)
+    clock = pygame.time.Clock()
+
+    def render_options(options, title=None):
+        screen.fill((255, 255, 255))
+        if title:
+            title_surf = font.render(title, True, (0, 0, 0))
+            title_rect = title_surf.get_rect(center=(size // 2, 40))
+            screen.blit(title_surf, title_rect)
+        rects = []
+        y = 100
+        mx, my = pygame.mouse.get_pos()
+        for text, _ in options:
+            surf = font.render(text, True, (0, 0, 0))
+            rect = surf.get_rect(center=(size // 2, y))
+            if rect.collidepoint(mx, my):
+                # highlight hovered option
+                highlight = rect.inflate(20, 10)
+                pygame.draw.rect(screen, (255, 255, 0), highlight)
+            screen.blit(surf, rect)
+            rects.append(rect)
+            y += 40
+        pygame.display.flip()
+        return rects
+
+    mode = "1"
+    bot_level = None
+    human_first = True
+    step = 0  # 0=choose mode,1=choose skill,2=choose first
+    rects = []
+    options = []
+
+    while True:
+        if step == 0:
+            options = [("Human vs Human", "1"), ("Human vs Bot", "2")]
+            rects = render_options(options, "Select mode:")
+        elif step == 1:
+            options = [("Beginner", "beginner"),
+                       ("Intermediate", "intermediate"),
+                       ("Expert", "expert")]
+            rects = render_options(options, "Select bot skill:")
+        elif step == 2:
+            options = [("Yes", True), ("No", False)]
+            rects = render_options(options, "Do you go first?")
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit(0)
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mx, my = event.pos
+                for rect, (_, val) in zip(rects, options):
+                    if rect.collidepoint(mx, my):
+                        if step == 0:
+                            mode = val
+                            if mode == "1":
+                                pygame.quit()
+                                return mode, None, True
+                            step = 1
+                            break
+                        elif step == 1:
+                            bot_level = val
+                            step = 2
+                            break
+                        elif step == 2:
+                            human_first = val
+                            pygame.quit()
+                            return mode, bot_level, human_first
+        clock.tick(30)
+
+
 def run_gui(state: GameState):
     if pygame is None:
         raise RuntimeError("Pygame is not installed; cannot run GUI mode.")
@@ -251,6 +336,15 @@ def run_gui(state: GameState):
 
     def draw():
         screen.fill((135, 206, 235))  # light blue background
+        # highlight hovered cell if human turn
+        mx, my = pygame.mouse.get_pos()
+        if state.mode != "2" or state.current != state.bot_player:
+            if 0 <= mx < size and 0 <= my < size:
+                idx = (my // cell) * 3 + (mx // cell)
+                if state.board[idx] == "":
+                    hx = (idx % 3) * cell
+                    hy = (idx // 3) * cell
+                    pygame.draw.rect(screen, (255, 255, 0), (hx, hy, cell, cell))
         # grid lines
         for i in range(1, 3):
             pygame.draw.line(screen, (0, 0, 0), (i * cell, 0), (i * cell, size), 4)
@@ -323,19 +417,24 @@ def show_message(screen, font, text):
 
 
 def main():
-    mode = select_mode()
+    mode = "1"
     bot_level = None
     human_first = True
-    if mode == "2":
-        bot_level = select_skill()
-        first = input("Do you want to go first? (y/n): ").lower().startswith("y")
-        human_first = first
+    if pygame:
+        # show graphical menu
+        mode, bot_level, human_first = show_menu_gui()
+    else:
+        # terminal prompts as before
+        mode = select_mode()
+        if mode == "2":
+            bot_level = select_skill()
+            first = input("Do you want to go first? (y/n): ").lower().startswith("y")
+            human_first = first
     state = GameState(mode=mode, bot_level=bot_level, human_first=human_first)
-    # launch GUI
+    # launch GUI or CLI
     if pygame:
         run_gui(state)
     else:
-        # fallback to CLI
         cli_loop(state)
 
 
